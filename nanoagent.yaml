@@ -1,0 +1,36 @@
+_ > nanoagent.plugin.v0001.ManifestConfig:
+id: log-failure-detection
+name: Log Failure Detection
+version: 0.1.0
+status: ready
+spec: nanoagent.plugin/v0001
+
+runtime > nanoagent.plugin.v0001.RuntimeConfig:
+  type: mcp_stdio
+  command: [uv, run, --frozen, python, -m, plugin]
+
+permissions > nanoagent.plugin.v0001.PermissionsConfig:
+  network > nanoagent.plugin.v0001.NetworkConfig:
+    hosts: []
+  filesystem > nanoagent.plugin.v0001.FilesystemConfig:
+    write: [workspace]
+
+tools > dict[contract.Tool, nanoagent.plugin.v0001.ToolConfig]:
+  pin_log_truth:
+    description: Pin a hidden, deterministic reference derived from the task's input before the agent starts
+  read_job_logs:
+    description: Read the task's original data and instructions from reproducible built-in fixtures
+  save_job_statuses:
+    description: Validate the submitted candidate's structure and save its actual result artifact in the workspace
+
+tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
+  detect-failed-jobs:
+    description: Classify jobs by last event and report jobs needing attention
+    runner: agent
+    tools: [read_job_logs, save_job_statuses]
+    reference: pin_log_truth
+    instructions: |-
+      Read the task's data using read_job_logs with the exact task input.
+      Follow the task rules shown by the reader and compute a candidate solution yourself.
+      Save your candidate with save_job_statuses. Correct errors if a tool rejects a candidate.
+      Call submit with the save tool's output object, unchanged. Do not assert success without submitting it.

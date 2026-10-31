@@ -1,0 +1,11 @@
+_ > nanoagent.plugin.v0001.ProductConfig:
+tagline: "Find unresolved failures and unfinished jobs from event histories"
+summary: "Out-of-order event logs are verified by independently reconstructing each job state. All input data are built into the repository and no external services are called."
+highlights:
+  - "Deterministic, documented fixtures and fixed outcome rules"
+  - "Verifies an actual saved report, not a claimed answer"
+  - "Tests include malformed, missing, extra and boundary cases"
+steps:
+  - "Choose a sample task input or a supported dataset ID"
+  - "Let the agent read, work out, and save its solution"
+  - "Review the report artifact and the deterministic verifier verdict"
