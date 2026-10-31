@@ -44,6 +44,8 @@ All tools use MCP over stdio and `NANOAGENT_WORKSPACE` supplied by NanoAgent. MC
 └── ui/                     # default NanoAgent v0001 schema renderer
 ```
 
+**Immutable report artifacts.** Each call to a save tool creates `reports/result-<sha256>.json` based on the exact saved bytes. Distinct inputs never overwrite one another, even when multiple tasks run in the same workspace. A temporary file is atomically renamed before the tool returns the path and hash. Never edit a report after saving it. Use the latest save tool result unchanged when calling `submit`.
+
 **How verification works.** Independently replays the pinned events sorted by timestamp and sequence. Rejects missing/duplicated/unknown statuses and failed IDs, wrong retry classification, altered artifacts and mismatched reference data. The verifier imports only pure allowed Python modules, reads only the workspace report, never calls an LLM, and returns a `valid`, `score`, `message`, `details` verdict. The task score is 1.0 for a valid result, 0.0 otherwise.
 
 ## Develop and run
@@ -85,7 +87,7 @@ The course RUSH Lab agent uses its configured **DeepSeek V4 Flash 0731** model a
 
 1. Set `OPENROUTER_API_KEY` in **your terminal environment**, for example `export OPENROUTER_API_KEY=...` in WSL. Never commit a key in `.env`, source code, tests or a GitHub repository.
 2. Copy `tests/agent_run.example.yaml` to a local config (or edit it in a private location) and replace the `model:` placeholder with the available **provider-qualified OpenRouter model ID**. The assignment names a model but does not provide a guaranteed API identifier.
-3. Run the agent and inspect `result.json`, `verdict.json`, `reference.json`, `messages.json` and the `workspace/reports/result.json` artifact:
+3. Run the agent and inspect `result.json`, `verdict.json`, `reference.json`, `messages.json` and the `workspace/reports/result-<sha256>.json (use the exact path returned by the save tool)` artifact:
 
 ```bash
 uv run --project /path/to/nanoagent-production/nanoagent nanoagent plugin agent \
@@ -108,3 +110,7 @@ The example config assumes the current working directory is this plugin folder. 
 - This is a deterministic finite-event state classifier, not a live log tailer. It assumes event timestamps and tie-breaking sequence numbers are valid UTC strings.
 - Marketplace packaging checks alone do **not** prove verifier correctness. Use both the negative tests and actual hosted runs. Each RUSH run has its own workspace; a copied report from another workspace is not automatically trusted.
 - Because this package was built in an environment without network access to upstream Git/PyPI, the real dependency installation, NanoAgent `plugin inspect` and live RUSH/OpenRouter agent run **must be rerun on your machine**. The included lockfile is adapted from the supplied Weather Alert reference, with this plugin's project name.
+
+### Verification of multiple batches in one RUSH Lab session
+
+You may test `retries`, `edge` and `all-good` separately; each now gets a content-addressed result path. Expected final failure counts: `retries` = 4 (`B`, `C`, `E`, `F`), `edge` = 2 (`S`, `M`) and `all-good` = 0. If a task still reports a digest mismatch, inspect `submit` against the **last** `save_job_statuses` output. They must contain the exact same `path` and `digest`. For report evidence, run each dataset in its own session and record the actual verifier verdict.

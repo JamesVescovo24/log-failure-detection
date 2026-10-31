@@ -2,7 +2,6 @@ import hashlib
 import pytest
 from contract import BatchInput,SaveInput,SaveOutput,JobStatus
 from plugin.logic import pin_reference,read_dataset,save_candidate
-from plugin.storage import REPORT_PATH
 from verifier import verify_input,verify_output,verify_task
 
 @pytest.mark.parametrize('batch',['retries','edge','all-good'])
@@ -32,10 +31,10 @@ def test_bad_candidate(tmp_path,variant):
 def test_missing_and_malformed(tmp_path):
     task=BatchInput('all-good');ref=pin_reference(task,tmp_path)
     output=save_candidate(SaveInput('all-good',ref.expected,ref.failed),tmp_path)
-    (tmp_path/REPORT_PATH).write_text('{oops')
+    (tmp_path/output.path).write_text('{oops')
     output.digest=hashlib.sha256(b'{oops').hexdigest()
     assert not verify_task('detect-failed-jobs',task,output,ref,str(tmp_path))['valid']
-    (tmp_path/REPORT_PATH).unlink()
+    (tmp_path/output.path).unlink()
     assert not verify_task('detect-failed-jobs',task,output,ref,str(tmp_path))['valid']
 
 def test_unknown_batch_and_ref_corruption(tmp_path):
